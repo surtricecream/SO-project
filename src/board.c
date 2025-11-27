@@ -411,6 +411,13 @@ int load_level(board_t *board, int points) {
     return 0;
 }
 
+//
+int load_level_from_file(board_t *board, const char *filepath, int accumulated_points) {
+    //DIM 6(height) 6(width)
+    //TEMPO 10(tempo)
+    
+}
+
 void unload_level(board_t * board) {
     free(board->board);
     free(board->pacmans);
