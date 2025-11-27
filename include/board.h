@@ -80,6 +80,9 @@ int load_ghost(board_t* board);
 /*Loads a level into board*/
 int load_level(board_t* board, int accumulated_points);
 
+/*Loads a level from a file into board*/
+int load_level_from_file(board_t *board, const char *filepath, int accumulated_points);
+
 /*Unloads levels loaded by load_level*/
 void unload_level(board_t * board);
 
