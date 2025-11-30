@@ -80,7 +80,11 @@ int parse_level_file(board_t* board, const char *lvl_path){
             continue;
         }
         else if (line[0] == 'D'){
-            sscanf(line,"DIM %d %d",&board->height, &board->width);
+            int n = sscanf(line,"DIM %d %d",&board->height, &board->width);
+            if (n != 2) {
+                free(buf);
+                return -1;
+            }
         }
         else if (line[0] == 'T'){
             sscanf(line,"TEMPO %d", &board->tempo);
