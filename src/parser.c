@@ -131,6 +131,7 @@ int parse_level_file(board_t* board, const char *lvl_path){
             free(board->board);
             free(board->pacmans);
             free(board->ghosts);
+            return -1;
         }
     }
     else{
