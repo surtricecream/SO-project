@@ -77,6 +77,7 @@ int parse_level_file(board_t* board, const char *lvl_path){
     while(line){
         if (line[0] == '#'){
             line = strtok_r(NULL,"\n",&save);
+            continue;
         }
         else if (line[0] == 'D'){
             sscanf(line,"DIM %d %d",&board->height, &board->width);
