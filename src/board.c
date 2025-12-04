@@ -375,6 +375,86 @@ int load_ghost(board_t* board) {
     return 0;
 }
 
+
+
+
+// Non-Static Loading
+int load_ghost_nonstatic(board_t* board, int ghostIndex, const char* monster_name) {
+    // Ghost 0
+    if (ghostIndex < 0 || ghostIndex >= board->n_ghosts) return -1;
+    ghost_t* fantasmaGaspar=&board->ghosts[ghostIndex];
+    
+    char filepath[MAX_FILENAME* 2];
+
+    if(build_directory(board->base_dir, monster_name, filepath, sizeof(filepath))==-1){
+        return -1;
+    }
+    //tem de se tornar o m1.m no diretorio
+  
+    int passo=0,gx=0,gy=0,n_moves=0;
+    if(parse_entity_file(fantasmaGaspar->moves,&n_moves, &passo, &gx, &gy, filepath)==-1){
+        return -1;
+    }
+    if (gx < 0 || gx >= board->width || gy < 0 || gy >= board->height) {
+        return -1;
+    }
+    if (board->board[gy * board->width + gx].content == 'W'){
+        return -1;
+    }
+    fantasmaGaspar->n_moves=n_moves;
+    fantasmaGaspar->passo=passo;
+    fantasmaGaspar->pos_x=gx;
+    fantasmaGaspar->pos_y=gy;
+    fantasmaGaspar->waiting = passo;
+    fantasmaGaspar->current_move = 0;
+    fantasmaGaspar->charged=0;
+ 
+    board->board[gy * board->width + gx].content = 'M';
+    
+    return 0;
+}
+// Non-Static Loading
+int load_pacman_nonstatic(board_t* board,int points) {
+
+    pacman_t* pikachu=&board->pacmans[0];
+    char filepath[MAX_FILENAME* 2];
+    pikachu->alive=1;
+    pikachu->points=points;
+
+    if(board->pacman_file[0]=='\0'){
+        pikachu->pos_x = 1; 
+        pikachu->pos_y = 1;
+        pikachu->passo = 0;
+        pikachu->waiting = 0;
+        pikachu->n_moves = 0;
+        pikachu->current_move=0;
+    }else{
+        if(build_directory(board->base_dir, board->pacman_file, filepath, sizeof(filepath))==-1){
+            return -1;
+        }
+        int passo=0,gx=0,gy=0,n_moves=0;
+        if(parse_entity_file(pikachu->moves,&n_moves, &passo, &gx, &gy, filepath)==-1){
+            return -1;
+        }
+        if (gx < 0 || gx >= board->width || gy < 0 || gy >= board->height) {
+            return -1;
+        }
+        if (board->board[gy * board->width + gx].content == 'W'){
+            return -1;
+        }
+        pikachu->n_moves=n_moves;
+        pikachu->passo=passo;
+        pikachu->pos_x=gx;
+        pikachu->pos_y=gy;
+        pikachu->waiting = passo;
+        pikachu->current_move = 0;
+    }
+ 
+    board->board[pikachu->pos_y * board->width + pikachu->pos_x].content = 'P';
+    
+    return 0;
+}
+
 int load_level(board_t *board, int points) {
     board->height = 5;
     board->width = 10;
@@ -407,21 +487,62 @@ int load_level(board_t *board, int points) {
 
     load_ghost(board);
     load_pacman(board, points);
-
     return 0;
 }
 
-//
+
 int load_level_from_file(board_t *board, const char *filepath, int accumulated_points) {
-    //DIM 6(height) 6(width)
-    //TEMPO 10(tempo)
-    
+
+    if(parse_level_file(board, filepath)!=0){
+        return -1;
+    }
+    sprintf(board->level_name, "Level Test");
+    //pacman
+    if(load_pacman_nonstatic(board,accumulated_points)==-1){
+        return -1;
+    }
+    //fantasma
+    for(int i=0;i<board->n_ghosts;i++){
+        if(load_ghost_nonstatic(board,i, board->ghosts_files[i])){
+            return -1;
+        }
+    }
+//
+//    for (int i = 0; i < board->height; i++) {
+//        for (int j = 0; j < board->width; j++) {
+//            if (i == 0 || j == 0 || j == (board->width - 1)) {
+//                board->board[i * board->width + j].content = 'W';
+//            }
+//            else if (i == 4 && j == 8) {
+//                board->board[i * board->width + j].content = ' ';
+//                board->board[i * board->width + j].has_portal = 1;
+//            }
+//            else {
+//                board->board[i * board->width + j].content = ' ';
+//                board->board[i * board->width + j].has_dot = 1;
+//            }
+//        }
+//    }
+//
+//    load_ghost(board);
+//    load_pacman(board, points);
+//
+    return 0;
+//    
 }
 
 void unload_level(board_t * board) {
     free(board->board);
     free(board->pacmans);
     free(board->ghosts);
+    board->board = NULL;
+    board->pacmans = NULL;
+    board->ghosts = NULL;
+    board->n_ghosts = 0;
+    board->n_pacmans = 0;
+    board->width = 0;
+    board->height = 0;
+    board->pacman_file[0] = '\0';
 }
 
 void open_debug_file(char *filename) {
