@@ -1,6 +1,6 @@
 #ifndef BOARD_H
 #define BOARD_H
-
+#include <stddef.h>
 #define MAX_MOVES 20
 #define MAX_LEVELS 20
 #define MAX_FILENAME 256
@@ -47,6 +47,11 @@ typedef struct {
 } board_pos_t;
 
 typedef struct {
+    char base_dir[MAX_FILENAME];// base dir
+    char level_files[MAX_LEVELS][MAX_FILENAME];//space with all paths to the levels
+    int level_count;//counter to know how many levels
+    int current_level;//counter of current level
+
     int width, height;      // dimensions of the board
     board_pos_t* board;     // actual board, a row-major matrix
     int n_pacmans;          // number of pacmans in the board
@@ -99,5 +104,11 @@ void debug(const char * format, ...);
 
 /*Writes the board and its contents to the open debug file*/
 void print_board(board_t* board);
+/*Parser.c*/
+int scan_directory_levels(const char* dir, board_t* board);
+int build_directory(const char* baseDir, const char* entity_name, char* entitypath, size_t entitysize);
+int scan_directory_levels(const char* dir, board_t* board);
+int parse_level_file(board_t* board, const char* lvl_path);
+int parse_entity_file(command_t* moves, int* n_moves, int* passo, int* pos_x, int* pos_y, const char* filepath);
 
 #endif
