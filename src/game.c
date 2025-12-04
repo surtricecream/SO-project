@@ -69,8 +69,9 @@ int play_board(board_t * game_board) {
 
 int main(int argc, char** argv) {
     if (argc != 2) {
-        printf("Usage: %s <level_directory>\n", argv[0]);
+        printf("Usage: %s <input_directory>\n", argv[0]);
         // TODO receive inputs
+        return -1;
     }
 
     // Random seed for any random movements
@@ -82,10 +83,23 @@ int main(int argc, char** argv) {
     
     int accumulated_points = 0;
     bool end_game = false;
-    board_t game_board;
+    board_t game_board=(board_t){0};
+    //para ter os levels
+    if(scan_directory_levels(argv[1], &game_board)<0){
+        terminal_cleanup();
+
+        close_debug_file();
+        return 1;
+    }
 
     while (!end_game) {
-        load_level(&game_board, accumulated_points);
+        char lvlpath[MAX_FILENAME *2];
+        if(build_directory(game_board.base_dir, game_board.level_files[game_board.current_level],lvlpath,sizeof(lvlpath))==-1){
+            break;
+        }
+        if(load_level_from_file(&game_board, lvlpath,accumulated_points)<0){
+            break;
+        }
         draw_board(&game_board, DRAW_MENU);
         refresh_screen();
 
