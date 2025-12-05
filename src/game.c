@@ -109,6 +109,10 @@ int main(int argc, char** argv) {
             if(result == NEXT_LEVEL) {
                 screen_refresh(&game_board, DRAW_WIN);
                 sleep_ms(game_board.tempo);
+                accumulated_points=game_board.pacmans->points;
+                if(next_level(&game_board)==0){
+                    end_game=true;
+                }
                 break;
             }
 
