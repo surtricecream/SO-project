@@ -91,6 +91,8 @@ int load_level_from_file(board_t *board, const char *filepath, int accumulated_p
 /*Unloads levels loaded by load_level*/
 void unload_level(board_t * board);
 
+/*Next level*/
+int next_level(board_t* board);
 // DEBUG FILE
 
 /*Opens the debug file*/
