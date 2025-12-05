@@ -495,7 +495,7 @@ int load_level_from_file(board_t *board, const char *filepath, int accumulated_p
     if(parse_level_file(board, filepath)!=0){
         return -1;
     }
-    sprintf(board->level_name, "Level Test");
+    sprintf(board->level_name, "Level %d",board->current_level+1);
     //pacman
     if(load_pacman_nonstatic(board,accumulated_points)==-1){
         return -1;
@@ -528,6 +528,15 @@ int load_level_from_file(board_t *board, const char *filepath, int accumulated_p
 //
     return 0;
 //    
+}
+int next_level(board_t* board){
+    if(board!=NULL){
+        if(board->current_level<=board->level_count){
+            board->current_level++;
+            return 1;
+        }
+    }
+    return 0;
 }
 
 void unload_level(board_t * board) {
