@@ -492,7 +492,6 @@ int load_level(board_t *board, int points) {
 
 
 int load_level_from_file(board_t *board, const char *filepath, int accumulated_points) {
-
     if(parse_level_file(board, filepath)!=0){
         return -1;
     }
