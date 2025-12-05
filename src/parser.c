@@ -148,11 +148,13 @@ int parse_level_file(board_t* board, const char *lvl_path){
  
 
     while(line){
+        int entered=0;
         size_t len = strlen(line);
         if (len > 0 && line[len-1] == '\r') line[len-1] = '\0';
 
         if (line[0] == '#'){
             line = strtok_r(NULL,"\n",&save);
+            entered=1;
         }
         else if (line[0] == 'D'){
             sscanf(line,"DIM %d %d",&board->width, &board->height);
@@ -188,7 +190,10 @@ int parse_level_file(board_t* board, const char *lvl_path){
             game_line=line;
             break;
         }
-        line = strtok_r(NULL, "\n", &save);
+        if(line[0]!='X' && line[0]!='o' && line[0]!='@' && entered==0){
+            line = strtok_r(NULL, "\n", &save);
+        }
+
     }
     //Criar o espaço para a grelha e o numero de bixos e pacman
     if(board->height>0 && board->width>0){
@@ -204,14 +209,6 @@ int parse_level_file(board_t* board, const char *lvl_path){
             return -1;
         }
                 // inicializar toda a grelha
-        for (int y = 0; y < board->height; y++) {
-            for (int x = 0; x < board->width; x++) {
-                int idx = y * board->width + x;
-                board->board[idx].content = ' ';
-                board->board[idx].has_dot = 0;
-                board->board[idx].has_portal = 0;
-            }
-        }
     }
     else{
         free(buf);
@@ -238,24 +235,7 @@ int parse_level_file(board_t* board, const char *lvl_path){
         game_line = strtok_r(NULL, "\n", &save);
     }
 
-    //while (game_line && y< board->height){
-    //    for(int i=0;i<board->width;i++){
-    //        if (game_line[i]=='X'){
-    //            board->board[y*board->width+i].content= 'W';
-    //        }
-    //        else if (game_line[i]=='o'){
-    //            board->board[y*board->width+i].content= ' ';
-    //            board->board[y*board->width+i].has_dot=1;
-    //        }
-    //        else if (game_line[i]=='@'){
-    //            board->board[y*board->width+i].content= ' ';
-    //            board->board[y*board->width+i].has_portal=1;   
-    //        }            
-    //    }
-    //    game_line = strtok_r(NULL, "\n", &save);
-    //    y++;
-    //    
-    //}
+
     free(buf);
     return 0;
 }
@@ -323,8 +303,10 @@ int parse_entity_file(command_t* moves, int* n_moves, int* passo, int* pos_x, in
     char *line = strtok_r(buf, "\n", &save);
     char c;
     while(line){
+        int entered=0;
         if (line[0] == '#'){
             line = strtok_r(NULL,"\n",&save);
+            entered=1;
         }
         else if (line[0] == 'P' && line[1] == 'A'){ //PASSO
             sscanf(line,"PASSO %d", passo);
@@ -341,7 +323,10 @@ int parse_entity_file(command_t* moves, int* n_moves, int* passo, int* pos_x, in
             }
             
         }
-        line = strtok_r(NULL,"\n",&save);
+        if(entered==0){
+            line = strtok_r(NULL,"\n",&save);
+        }
+
     }
     free(buf);
     return 0;
