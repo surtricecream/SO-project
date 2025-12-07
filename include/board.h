@@ -114,8 +114,4 @@ int scan_directory_levels(const char* dir, board_t* board);
 int parse_level_file(board_t* board, const char* lvl_path);
 int parse_entity_file(command_t* moves, int* n_moves, int* passo, int* pos_x, int* pos_y, const char* filepath);
 
-/* Save / Load quicksave state (binary file in base_dir/.pacmanist.save) */
-int save_game_state(board_t *board);
-int load_game_state(board_t *board);
-
 #endif

@@ -5,12 +5,6 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/stat.h>
-#include <fcntl.h>      
-#include <errno.h>
-#include <limits.h>     
-#include <string.h>
-#include <stdio.h> 
 
 #define CONTINUE_PLAY 0
 #define NEXT_LEVEL 1
@@ -19,10 +13,7 @@
 #define CREATE_BACKUP 4
 
 static int g_can_save = 1;
-
-static void get_save_path(board_t *b, char *buffer, size_t size) {
-    snprintf(buffer, size, "%s/.pacmanist.save", b->base_dir);
-}
+static int g_is_child = 0;
 
 void screen_refresh(board_t * game_board, int mode) {
     debug("REFRESH\n");
@@ -58,32 +49,31 @@ int play_board(board_t * game_board) {
     }
 
     if (play->command == 'G') {
-
-        if (!g_can_save) {
-            debug("Save denied: Save already used in this session.\n");
-            return CONTINUE_PLAY;
-        }
-
-        char path[PATH_MAX];
-        get_save_path(game_board, path, sizeof(path));
-
-        // Only save if file does not exist
-        if (access(path, F_OK) != 0) {
+        if (g_can_save && !g_is_child) {
             pid_t pid = fork();
-            if (pid < 0) {
-                debug("Fork failed\n");
-            } else if (pid == 0) {
-                // Child process: Save and exit immediately
-                // Using _exit to avoid flushing parent's stdio buffers
-                save_game_state(game_board);
-                _exit(0);
+
+            if (pid == 0) {
+                // CHILD: Becomes the Active Game
+                g_is_child = 1;
+                g_can_save = 0;
+                return CONTINUE_PLAY;
             } else {
-                // Parent process: Continue game
-                debug("Quicksave started in background (PID %d)\n", pid);
-                // Optional: waitpid(pid, NULL, WNOHANG) to clean up zombies later
+                // PARENT: Becomes the Backup (Frozen State)
+                int status;
+                debug("Game Saved. Parent waiting...\n");
+                waitpid(pid, &status, 0); 
+
+                if (WIFEXITED(status) && WEXITSTATUS(status) == 42) {
+                    debug("Reloading state...\n");
+                    g_can_save = 0; // Cannot save again in this run
+                    
+                    draw_board(game_board, DRAW_MENU);
+                    refresh_screen();
+                    return CONTINUE_PLAY;
+                } else {
+                    exit(0);
+                }
             }
-        } else {
-            debug("Save file already exists, ignoring G.\n");
         }
         return CONTINUE_PLAY;
     }
@@ -95,14 +85,10 @@ int play_board(board_t * game_board) {
     }
 
     if (result == DEAD_PACMAN) {
-        char path[PATH_MAX];
-        get_save_path(game_board, path, sizeof(path));
-        
-        // If save exists, signal to load it
-        if (access(path, F_OK) == 0) {
-            return LOAD_BACKUP;
+        if (g_is_child) {
+            exit(42); // Signal parent to reload
         }
-        return QUIT_GAME;
+        return QUIT_GAME; // No backup exists, real game over
     }
     
     for (int i = 0; i < game_board->n_ghosts; i++) {
@@ -113,13 +99,11 @@ int play_board(board_t * game_board) {
     }
 
     if (!game_board->pacmans[0].alive) {
-        char path[PATH_MAX];
-        get_save_path(game_board, path, sizeof(path));
-        if (access(path, F_OK) == 0) {
-            return LOAD_BACKUP;
+        if (g_is_child) {
+            exit(42); // Signal parent to reload
         }
         return QUIT_GAME;
-    }      
+    }       
 
     return CONTINUE_PLAY;  
 }
@@ -130,11 +114,6 @@ int main(int argc, char** argv) {
         // TODO receive inputs
         return -1;
     }
-
-    // Requirement: Cannot have a previous game save file
-    char initial_path[PATH_MAX];
-    snprintf(initial_path, sizeof(initial_path), "%s/.pacmanist.save", argv[1]);
-    unlink(initial_path);
 
     // Random seed for any random movements
     srand((unsigned int)time(NULL));
@@ -176,25 +155,6 @@ int main(int argc, char** argv) {
                     end_game=true;
                 }
                 break;
-            }
-
-            if(result == LOAD_BACKUP) {
-                if (load_game_state(&game_board) == 0) {
-                    debug("Game reloaded from backup.\n");
-                    
-                    // Requirement: If I die and use the save file, I cannot save again that game
-                    g_can_save = 0; 
-
-                    draw_board(&game_board, DRAW_MENU);
-                    refresh_screen();
-                    continue; // Restart loop with loaded state
-                } else {
-                    debug("Failed to load backup.\n");
-                    screen_refresh(&game_board, DRAW_GAME_OVER);
-                    sleep_ms(game_board.tempo);
-                    end_game = true;
-                    break;
-                }
             }
 
             if(result == QUIT_GAME) {
