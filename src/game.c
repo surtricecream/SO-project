@@ -3,12 +3,17 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #define CONTINUE_PLAY 0
 #define NEXT_LEVEL 1
 #define QUIT_GAME 2
 #define LOAD_BACKUP 3
 #define CREATE_BACKUP 4
+
+static int g_can_save = 1;
+static int g_is_child = 0;
 
 void screen_refresh(board_t * game_board, int mode) {
     debug("REFRESH\n");
@@ -43,14 +48,47 @@ int play_board(board_t * game_board) {
         return QUIT_GAME;
     }
 
+    if (play->command == 'G') {
+        if (g_can_save && !g_is_child) {
+            pid_t pid = fork();
+
+            if (pid == 0) {
+                // CHILD: Becomes the Active Game
+                g_is_child = 1;
+                g_can_save = 0;
+                return CONTINUE_PLAY;
+            } else {
+                // PARENT: Becomes the Backup (Frozen State)
+                int status;
+                debug("Game Saved. Parent waiting...\n");
+                waitpid(pid, &status, 0); 
+
+                if (WIFEXITED(status) && WEXITSTATUS(status) == 42) {
+                    debug("Reloading state...\n");
+                    g_can_save = 0; // Cannot save again in this run
+                    
+                    draw_board(game_board, DRAW_MENU);
+                    refresh_screen();
+                    return CONTINUE_PLAY;
+                } else {
+                    exit(0);
+                }
+            }
+        }
+        return CONTINUE_PLAY;
+    }
+
     int result = move_pacman(game_board, 0, play);
     if (result == REACHED_PORTAL) {
         // Next level
         return NEXT_LEVEL;
     }
 
-    if(result == DEAD_PACMAN) {
-        return QUIT_GAME;
+    if (result == DEAD_PACMAN) {
+        if (g_is_child) {
+            exit(42); // Signal parent to reload
+        }
+        return QUIT_GAME; // No backup exists, real game over
     }
     
     for (int i = 0; i < game_board->n_ghosts; i++) {
@@ -61,8 +99,11 @@ int play_board(board_t * game_board) {
     }
 
     if (!game_board->pacmans[0].alive) {
+        if (g_is_child) {
+            exit(42); // Signal parent to reload
+        }
         return QUIT_GAME;
-    }      
+    }       
 
     return CONTINUE_PLAY;  
 }

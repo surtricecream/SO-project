@@ -106,6 +106,7 @@ void debug(const char * format, ...);
 
 /*Writes the board and its contents to the open debug file*/
 void print_board(board_t* board);
+
 /*Parser.c*/
 int scan_directory_levels(const char* dir, board_t* board);
 int build_directory(const char* baseDir, const char* entity_name, char* entitypath, size_t entitysize);
