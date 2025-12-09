@@ -13,7 +13,7 @@ INCLUDE_DIR = include
 TARGET = Pacmanist
 
 # Objects variables
-OBJS = game.o display.o board.o
+OBJS = game.o display.o board.o parser.o
 
 # Dependencies
 display.o = display.h
