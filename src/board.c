@@ -422,8 +422,18 @@ int load_pacman_nonstatic(board_t* board,int points) {
     pikachu->points=points;
 
     if(board->pacman_file[0]=='\0'){
-        pikachu->pos_x = 1; 
-        pikachu->pos_y = 1;
+    for (int i = 0; i < board->width * board->height; i++) {
+        int y = i / board->width;   // row
+        int x = i % board->width;   // col
+        // pick first free cell with a dot and no portal/wall/monster
+        if (board->board[i].content == ' ' &&
+            board->board[i].has_dot == 1 &&
+            board->board[i].has_portal != 1) {
+            pikachu->pos_y = y;
+            pikachu->pos_x = x;
+            break;
+        }
+}
         pikachu->passo = 0;
         pikachu->waiting = 0;
         pikachu->n_moves = 0;
