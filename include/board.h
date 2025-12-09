@@ -63,7 +63,7 @@ typedef struct {
     char pacman_file[256];  // file with pacman movements
     char ghosts_files[MAX_GHOSTS][256]; // files with monster movements
     int tempo;              // Duration of each play
-    pthread_mutex_t board_lock;
+    pthread_rwlock_t board_lock;
     int game_running;
     int level_finished;
 } board_t;

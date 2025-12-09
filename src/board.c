@@ -506,7 +506,7 @@ int load_level_from_file(board_t *board, const char *filepath, int accumulated_p
         return -1;
     }
 
-    pthread_mutex_init(&board->board_lock, NULL);
+    pthread_rwlock_init(&board->board_lock, NULL);
     board->game_running = 1;
     board->level_finished = 0;
     sprintf(board->level_name, "Level %d",board->current_level+1);
@@ -534,7 +534,7 @@ int next_level(board_t* board){
 }
 
 void unload_level(board_t * board) {
-    pthread_mutex_destroy(&board->board_lock);
+    pthread_rwlock_destroy(&board->board_lock);
     free(board->board);
     free(board->pacmans);
     free(board->ghosts);
