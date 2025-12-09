@@ -506,33 +506,13 @@ int load_level_from_file(board_t *board, const char *filepath, int accumulated_p
             return -1;
         }
     }
-//
-//    for (int i = 0; i < board->height; i++) {
-//        for (int j = 0; j < board->width; j++) {
-//            if (i == 0 || j == 0 || j == (board->width - 1)) {
-//                board->board[i * board->width + j].content = 'W';
-//            }
-//            else if (i == 4 && j == 8) {
-//                board->board[i * board->width + j].content = ' ';
-//                board->board[i * board->width + j].has_portal = 1;
-//            }
-//            else {
-//                board->board[i * board->width + j].content = ' ';
-//                board->board[i * board->width + j].has_dot = 1;
-//            }
-//        }
-//    }
-//
-//    load_ghost(board);
-//    load_pacman(board, points);
-//
     return 0;
 //    
 }
 int next_level(board_t* board){
-    if(board!=NULL){
-        if(board->current_level<=board->level_count){
-            board->current_level++;
+    if (board != NULL){
+        board->current_level++;
+        if(board->current_level < board->level_count){
             return 1;
         }
     }
