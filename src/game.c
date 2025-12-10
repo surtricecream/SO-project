@@ -15,6 +15,10 @@
 #define EXIT_RELOAD 42
 #define EXIT_WIN 100
 
+static int g_can_save = 1;      
+static int g_is_child = 0;     
+static int g_request_save = 0;  
+
 typedef struct {
     board_t* board;
     int ghost_index;
@@ -34,11 +38,6 @@ void screen_refresh(board_t * game_board, int mode) {
 void* pacman_thread(void* arg) {
     board_t* board = (board_t*)arg;
     pacman_t* pacman = &board->pacmans[0];
-    
-    // State for child process management
-    int is_child = 0;
-    pthread_t child_t_render;
-    pthread_t child_t_ghosts[MAX_GHOSTS];
 
     while (board->game_running) {
         command_t cmd;
@@ -57,77 +56,18 @@ void* pacman_thread(void* arg) {
                 break;
             }
 
-            // --- FORK / SAVE LOGIC ---
             if (cmd.command == 'G') {
-                if (is_child) {
-                    // Prevent nested saves for simplicity
+                if (g_is_child || g_can_save == 0) {
                     continue; 
                 }
 
-                // 1. Acquire Write Lock (Pauses Parent Threads)
+                g_request_save = 1;
+                g_can_save = 0;
+
                 pthread_rwlock_wrlock(&board->board_lock);
-                
-                pid_t pid = fork();
-                
-                if (pid < 0) {
-                    // Error
-                    pthread_rwlock_unlock(&board->board_lock);
-                } 
-                else if (pid == 0) {
-                    // --- CHILD PROCESS ---
-                    is_child = 1;
-                    
-                    // The inherited lock state is invalid because the owner TID changed.
-                    // This resets it to a clean, unlocked state.
-                    pthread_rwlock_init(&board->board_lock, NULL);
-                    
-                    // Recreate threads
-                    pthread_create(&child_t_render, NULL, render_thread, board);
-                    for(int i = 0; i < board->n_ghosts; i++) {
-                        ghost_args_t* args = malloc(sizeof(ghost_args_t));
-                        args->board = board;
-                        args->ghost_index = i;
-                        pthread_create(&child_t_ghosts[i], NULL, ghost_thread, args);
-                    }
-                    
-                    // Continue the loop as the active game
-                    continue;
-                } 
-                else {
-                    // --- PARENT PROCESS (BACKUP) ---
-                    // Wait for child. Lock is held, so other threads are paused.
-                    int status;
-                    waitpid(pid, &status, 0);
-                    
-                    if (WIFEXITED(status)) {
-                        int code = WEXITSTATUS(status);
-                        if (code == EXIT_RELOAD) {
-                            // Child died, reload requested.
-                            // Resume execution from here (state preserved)
-                            pthread_rwlock_unlock(&board->board_lock);
-                            // Force refresh to clear any child artifacts
-                            draw_board(board, DRAW_MENU);
-                            refresh_screen();
-                            continue;
-                        } else if (code == EXIT_WIN) {
-                            // Child won.
-                            board->level_finished = 1;
-                            board->game_running = 0;
-                            pthread_rwlock_unlock(&board->board_lock);
-                            break;
-                        } else {
-                            // Quit (0) or others
-                            board->game_running = 0;
-                            pthread_rwlock_unlock(&board->board_lock);
-                            break;
-                        }
-                    } else {
-                        // Abnormal exit
-                        board->game_running = 0;
-                        pthread_rwlock_unlock(&board->board_lock);
-                        break;
-                    }
-                }
+                board->game_running = 0; 
+                pthread_rwlock_unlock(&board->board_lock);
+                break;
             }
             
             cmd.turns = 1;
@@ -145,42 +85,15 @@ void* pacman_thread(void* arg) {
         int result = move_pacman(board, 0, &cmd);
         
         if (result == REACHED_PORTAL) {
-            if (is_child) {
-                pthread_rwlock_unlock(&board->board_lock);
-                board->level_finished = 1;
-                board->game_running = 0;
-            } else {
-                board->level_finished = 1;
-                board->game_running = 0;
-            }
+             board->level_finished = 1;
+             board->game_running = 0;
         } else if (result == DEAD_PACMAN || !board->pacmans[0].alive) {
-            if (is_child) {
-                pthread_rwlock_unlock(&board->board_lock);
-                board->game_running = 0; // Break loop to cleanup
-            } else {
-                board->game_running = 0; // Game Over (No save)
-            }
+             board->game_running = 0; 
         }
         
         pthread_rwlock_unlock(&board->board_lock);
         sleep_ms(10); 
     }
-
-    // --- CLEANUP ---
-    if (is_child) {
-        // Stop threads
-        board->game_running = 0; 
-        pthread_join(child_t_render, NULL);
-        for(int i = 0; i < board->n_ghosts; i++) {
-            pthread_join(child_t_ghosts[i], NULL);
-        }
-        
-        // Determine exit code
-        if (board->level_finished) exit(EXIT_WIN);
-        if (!board->pacmans[0].alive) exit(EXIT_RELOAD);
-        exit(EXIT_QUIT);
-    }
-
     return NULL;
 }
 
@@ -249,13 +162,24 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    int resuming = 0;
+
     while (!end_game) {
-        char lvlpath[MAX_FILENAME * 2];
-        if(build_directory(game_board.base_dir, game_board.level_files[game_board.current_level], lvlpath, sizeof(lvlpath)) == -1){
-            break;
-        }
-        if(load_level_from_file(&game_board, lvlpath, accumulated_points) < 0){
-            break;
+        if (!resuming) {
+            char lvlpath[MAX_FILENAME * 2];
+            if(build_directory(game_board.base_dir, game_board.level_files[game_board.current_level], lvlpath, sizeof(lvlpath)) == -1){
+                break;
+            }
+            if(load_level_from_file(&game_board, lvlpath, accumulated_points) < 0){
+                break;
+            }
+        } else {
+            game_board.game_running = 1;
+            
+            if (g_is_child) {
+                pthread_rwlock_init(&game_board.board_lock, NULL);
+            }
+            resuming = 0;
         }
 
         pthread_t t_pacman, t_render;
@@ -281,6 +205,33 @@ int main(int argc, char** argv) {
             pthread_join(t_ghosts[i], NULL);
         }
 
+        if (g_request_save) {
+            g_request_save = 0;
+            
+            pid_t pid = fork();
+            
+            if (pid == 0) {
+                g_is_child = 1;
+                resuming = 1;
+                continue;
+            } else {
+                int status;
+                waitpid(pid, &status, 0);
+                
+                if (WIFEXITED(status)) {
+                    int code = WEXITSTATUS(status);
+                    if (code == EXIT_RELOAD) {
+                        resuming = 1;
+                        continue;
+                    } else {
+                        exit(0);
+                    }
+                } else {
+                    exit(1);
+                }
+            }
+        }
+
         if (game_board.level_finished) {
             screen_refresh(&game_board, DRAW_WIN);
             sleep_ms(1000);
@@ -289,13 +240,22 @@ int main(int argc, char** argv) {
                 end_game = true;
             }
         } else {
+            if (g_is_child) {
+                if (!game_board.pacmans[0].alive) {
+                    exit(EXIT_RELOAD);
+                } 
+                exit(EXIT_QUIT);
+            }
+
             screen_refresh(&game_board, DRAW_GAME_OVER);
             sleep_ms(1000);
             end_game = true;
-        }
+        }    
 
-        unload_level(&game_board);
-    }    
+        if (!resuming) {
+            unload_level(&game_board);
+        }
+    }
 
     terminal_cleanup();
     close_debug_file();
