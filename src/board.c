@@ -505,6 +505,10 @@ int load_level_from_file(board_t *board, const char *filepath, int accumulated_p
     if(parse_level_file(board, filepath)!=0){
         return -1;
     }
+
+    pthread_rwlock_init(&board->board_lock, NULL);
+    board->game_running = 1;
+    board->level_finished = 0;
     sprintf(board->level_name, "Level %d",board->current_level+1);
     //pacman
     if(load_pacman_nonstatic(board,accumulated_points)==-1){
@@ -530,6 +534,7 @@ int next_level(board_t* board){
 }
 
 void unload_level(board_t * board) {
+    pthread_rwlock_destroy(&board->board_lock);
     free(board->board);
     free(board->pacmans);
     free(board->ghosts);
