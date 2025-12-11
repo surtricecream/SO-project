@@ -64,9 +64,9 @@ typedef struct {
     char pacman_file[256];  // file with pacman movements
     char ghosts_files[MAX_GHOSTS][256]; // files with monster movements
     int tempo;              // Duration of each play
-    pthread_rwlock_t board_lock;
-    int game_running;
-    int level_finished;
+    pthread_rwlock_t board_lock;// Read-Write lock for thread-safe access to the board state
+    int game_running;           // Flag indicating if the game loop is active (1) or should stop (0)
+    int level_finished;         // Flag indicating if the level completion condition (portal reached) is met
 } board_t;
 
 /*Makes the current thread sleep for 'int milliseconds' miliseconds*/
@@ -98,7 +98,6 @@ void unload_level(board_t * board);
 
 /*Next level*/
 int next_level(board_t* board);
-// DEBUG FILE
 
 /*Opens the debug file*/
 void open_debug_file(char *filename);
@@ -112,11 +111,17 @@ void debug(const char * format, ...);
 /*Writes the board and its contents to the open debug file*/
 void print_board(board_t* board);
 
-/*Parser.c*/
+//parser.c
+/*Scans the input directory for level files (ending in .lvl) and initializes the board structure with the list*/
 int scan_directory_levels(const char* dir, board_t* board);
+
+/*Constructs the full path for an entity file based on the level directory and entity name*/
 int build_directory(const char* baseDir, const char* entity_name, char* entitypath, size_t entitysize);
-int scan_directory_levels(const char* dir, board_t* board);
+
+/*Parses the main level file to set board dimensions, time, entity filenames and populates the grid*/
 int parse_level_file(board_t* board, const char* lvl_path);
+
+/*Parses an entity file (Pacman or Ghost) to extract moves, initial position and speed (passo)*/
 int parse_entity_file(command_t* moves, int* n_moves, int* passo, int* pos_x, int* pos_y, const char* filepath);
 
 #endif
