@@ -425,10 +425,19 @@ int load_pacman_nonstatic(board_t* board,int points) {
     for (int i = 0; i < board->width * board->height; i++) {
         int y = i / board->width;   // row
         int x = i % board->width;   // col
+        int hasMonster=0;
+        for(int monstro=0; monstro<board->n_ghosts; monstro++){
+            if (board->ghosts[monstro].pos_x==y &&  board->ghosts[monstro].pos_y==x) {
+                hasMonster=1;
+                break;
+            }
+
+        }
         // pick first free cell with a dot and no portal/wall/monster
         if (board->board[i].content == ' ' &&
             board->board[i].has_dot == 1 &&
-            board->board[i].has_portal != 1) {
+            board->board[i].has_portal != 1 &&
+            hasMonster == 0) {
             pikachu->pos_y = y;
             pikachu->pos_x = x;
             break;
@@ -510,15 +519,16 @@ int load_level_from_file(board_t *board, const char *filepath, int accumulated_p
     board->game_running = 1;
     board->level_finished = 0;
     sprintf(board->level_name, "Level %d",board->current_level+1);
-    //pacman
-    if(load_pacman_nonstatic(board,accumulated_points)==-1){
-        return -1;
-    }
+
     //fantasma
     for(int i=0;i<board->n_ghosts;i++){
         if(load_ghost_nonstatic(board,i, board->ghosts_files[i])){
             return -1;
         }
+    }
+    //pacman
+    if(load_pacman_nonstatic(board,accumulated_points)==-1){
+        return -1;
     }
     return 0;
 //    
