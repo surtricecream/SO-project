@@ -52,6 +52,7 @@ typedef struct {
     char level_files[MAX_LEVELS][MAX_FILENAME];//space with all paths to the levels
     int level_count;//counter to know how many levels
     int current_level;//counter of current level
+    char input;
 
     int width, height;      // dimensions of the board
     board_pos_t* board;     // actual board, a row-major matrix
