@@ -233,10 +233,10 @@ int main(int argc, char** argv) {
         }
 
         if (game_board.level_finished) {
-            screen_refresh(&game_board, DRAW_WIN);
-            sleep_ms(1000);
             accumulated_points = game_board.pacmans[0].points;
             if(next_level(&game_board) == 0){
+                screen_refresh(&game_board, DRAW_WIN);
+                sleep_ms(1000);
                 end_game = true;
             }
         } else {
