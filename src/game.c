@@ -196,7 +196,6 @@ int main(int argc, char** argv) {
             if (g_is_child) {
                 pthread_rwlock_init(&game_board.board_lock, NULL);
             }
-            resuming = 0;
         }
 
         pthread_t t_pacman, t_render;
