@@ -186,7 +186,7 @@ int main(int argc, char** argv) {
             }
             game_board.game_running = 1;
             game_board.level_finished = 0;
-            game_board.input = '\0';            
+            game_board.input = '\0';
         } else {
             game_board.game_running = 1;
             game_board.level_finished = 0;
