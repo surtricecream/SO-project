@@ -1,6 +1,6 @@
 # Compiler variables
 CC = gcc
-CFLAGS = -g -Wall -Wextra -Werror -std=c17 -D_POSIX_C_SOURCE=200809L
+CFLAGS = -g -Wall -Wextra -Werror -std=c17 -D_POSIX_C_SOURCE=200809L 
 LDFLAGS = -lncurses -pthread
 
 # Directory variables
