@@ -97,6 +97,30 @@ void* pacman_thread(void* arg) {
             //Moves from .p file
             cmd = pacman->moves[pacman->current_move % pacman->n_moves];
             sleep_ms(board->tempo);
+
+            if (cmd.command == 'Q') {
+                pthread_rwlock_wrlock(&board->board_lock);
+                board->game_running = 0;
+                pthread_rwlock_unlock(&board->board_lock);
+                break;
+            }
+
+            if (cmd.command == 'G') {
+                if (!g_is_child && g_can_save) {
+                    g_request_save = 1;
+                    g_can_save = 0;
+
+                    pthread_rwlock_wrlock(&board->board_lock);
+                    board->game_running = 0;
+                    pthread_rwlock_unlock(&board->board_lock);
+                    break;
+                }
+                
+                pthread_rwlock_wrlock(&board->board_lock);
+                pacman->current_move++;
+                pthread_rwlock_unlock(&board->board_lock);
+                continue;
+            }
         }
 
         pthread_rwlock_wrlock(&board->board_lock);
