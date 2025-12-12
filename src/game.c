@@ -15,9 +15,9 @@
 #define EXIT_RELOAD 42
 #define EXIT_WIN 100
 
-static int g_can_save = 1;      
-static int g_is_child = 0;     
-static int g_request_save = 0;  
+static int g_can_save = 1; //One save per run
+static int g_is_child = 0; //Active process is child
+static int g_request_save = 0; //Initiate fork
 
 typedef struct {
     board_t* board;
@@ -27,14 +27,22 @@ typedef struct {
 void* ghost_thread(void* arg);
 void* render_thread(void* arg);
 
+/*
+Refreshes the screen with the current board state.
+*/
 void screen_refresh(board_t * game_board, int mode) {
     debug("REFRESH\n");
     draw_board(game_board, mode);
     refresh_screen();
-    if(game_board->tempo != 0)
+
+    if (game_board->tempo != 0)
         sleep_ms(game_board->tempo);       
 }
 
+/*
+Thread function for controlling Pacman.
+Handles user input, movement logic, and game state updates (win/loss/save).
+*/
 void* pacman_thread(void* arg) {
     board_t* board = (board_t*)arg;
     pacman_t* pacman = &board->pacmans[0];
@@ -42,6 +50,7 @@ void* pacman_thread(void* arg) {
     while (board->game_running) {
         command_t cmd;
 
+        //User controls pac
         if (pacman->n_moves == 0) {
             pthread_rwlock_wrlock(&board->board_lock);
             char key = board->input;
@@ -61,9 +70,11 @@ void* pacman_thread(void* arg) {
             }
  
             if (key == 'G') {
+                //Save if we are the parent
                 if (!g_is_child && g_can_save) {
                     g_request_save = 1;
                     g_can_save = 0;
+
                     pthread_rwlock_wrlock(&board->board_lock);
                     board->game_running = 0;
                     pthread_rwlock_unlock(&board->board_lock);
@@ -76,6 +87,7 @@ void* pacman_thread(void* arg) {
             cmd.command = key;
             cmd.turns = 1;
         } else {
+            //Moves from .p file
             cmd = pacman->moves[pacman->current_move % pacman->n_moves];
             sleep_ms(board->tempo);
         }
@@ -98,6 +110,10 @@ void* pacman_thread(void* arg) {
     return NULL;
 }
 
+/*
+Thread function for controlling a single Ghost.
+Handles ghost movement logic and collision checks.
+*/
 void* ghost_thread(void* arg) {
     ghost_args_t* args = (ghost_args_t*)arg;
     board_t* board = args->board;
@@ -127,6 +143,10 @@ void* ghost_thread(void* arg) {
     return NULL;
 }
 
+/*
+Thread function for rendering the game state.
+Captures raw input and draws the board to the terminal.
+*/
 void* render_thread(void* arg) {
     board_t* board = (board_t*)arg;
 
@@ -151,6 +171,10 @@ void* render_thread(void* arg) {
     return NULL;
 }
 
+/*
+Main game loop.
+Initializes the game, manages levels, threads and fork.
+*/
 int main(int argc, char** argv) {
     if (argc != 2) {
         printf("Usage: %s <input_directory>\n", argv[0]);
@@ -195,7 +219,8 @@ int main(int argc, char** argv) {
             resuming = 0;
         }
 
-pthread_t t_pacman, t_render;
+        //Threads
+        pthread_t t_pacman, t_render;
         pthread_t t_ghosts[MAX_GHOSTS];
 
         pthread_create(&t_pacman, NULL, pacman_thread, &game_board);
@@ -218,17 +243,19 @@ pthread_t t_pacman, t_render;
             pthread_join(t_ghosts[i], NULL);
         }
 
-
+        //Save/fork
         if (g_request_save) {
             g_request_save = 0;
             
             pid_t pid = fork();
             
             if (pid == 0) {
+                //Child (game continues)
                 g_is_child = 1;
                 resuming = 1;
                 continue;
             } else {
+                //Parent (backup)
                 int status;
                 waitpid(pid, &status, 0);
                 
