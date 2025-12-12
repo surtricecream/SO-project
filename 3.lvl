@@ -1,0 +1,18 @@
+# DIM: dimensões da matriz do nível
+# só existe um no início por ficheiro
+DIM 6 6
+# TEMPO: indica a duração de cada jogada em milissegundos
+TEMPO 100
+# PAC: (opcional) indica o nome do ficheiro do pacman deste 
+# PAC 1.p
+# MON: indica os nomes dos ficheiros de monstros usados neste nível
+MON 2.m
+# o ficheiro termina com o conteúdo da matriz de jogo em que "X"
+# representa uma parede, "o" representa um espaço de circulação
+# e “@” representa o portal
+XXXXXX
+XXXXXX
+XXoooX
+XooooX
+Xooo@X
+XXXXXX
