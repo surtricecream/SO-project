@@ -84,8 +84,14 @@ void kill_pacman(board_t* board, int pacman_index);
 /*Adds a pacman to the board*/
 int load_pacman(board_t* board, int points);
 
+/*Adds a pacman to the board using their filename*/
+int load_pacman_nonstatic(board_t* board,int points);
+
 /*Adds a ghost(monster) to the board*/
 int load_ghost(board_t* board);
+
+/*Adds a ghost(monster) to the board using their name and number(Non-Static)*/
+int load_ghost_nonstatic(board_t* board, int ghostIndex, const char* monster_name);
 
 /*Loads a level into board*/
 int load_level(board_t* board, int accumulated_points);
@@ -93,7 +99,7 @@ int load_level(board_t* board, int accumulated_points);
 /*Loads a level from a file into board*/
 int load_level_from_file(board_t *board, const char *filepath, int accumulated_points);
 
-/*Unloads levels loaded by load_level*/
+/*Unloads levels loaded by load_level_from_file*/
 void unload_level(board_t * board);
 
 /*Next level*/
@@ -123,5 +129,7 @@ int parse_level_file(board_t* board, const char* lvl_path);
 
 /*Parses an entity file (Pacman or Ghost) to extract moves, initial position and speed (passo)*/
 int parse_entity_file(command_t* moves, int* n_moves, int* passo, int* pos_x, int* pos_y, const char* filepath);
+
+
 
 #endif

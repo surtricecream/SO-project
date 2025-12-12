@@ -379,61 +379,60 @@ int load_ghost(board_t* board) {
 
 
 // Non-Static Loading
+
 int load_ghost_nonstatic(board_t* board, int ghostIndex, const char* monster_name) {
-    // Ghost 0
     if (ghostIndex < 0 || ghostIndex >= board->n_ghosts) return -1;
-    ghost_t* fantasmaGaspar=&board->ghosts[ghostIndex];
+    ghost_t* fantasmaGaspar = &board->ghosts[ghostIndex];
     
     char filepath[MAX_FILENAME* 2];
 
-    if(build_directory(board->base_dir, monster_name, filepath, sizeof(filepath))==-1){
+    if (build_directory(board->base_dir, monster_name, filepath, sizeof(filepath)) ==-1) {
         return -1;
     }
-    //tem de se tornar o m1.m no diretorio
   
-    int passo=0,gx=0,gy=0,n_moves=0;
-    if(parse_entity_file(fantasmaGaspar->moves,&n_moves, &passo, &gx, &gy, filepath)==-1){
+    int passo = 0, gx = 0, gy = 0, n_moves = 0;
+    if (parse_entity_file(fantasmaGaspar->moves, &n_moves, &passo, &gx, &gy, filepath) == -1) {
         return -1;
     }
     if (gx < 0 || gx >= board->width || gy < 0 || gy >= board->height) {
         return -1;
     }
-    if (board->board[gy * board->width + gx].content == 'W'){
+    if (board->board[gy*board->width + gx].content == 'W') {
         return -1;
     }
-    fantasmaGaspar->n_moves=n_moves;
-    fantasmaGaspar->passo=passo;
-    fantasmaGaspar->pos_x=gx;
-    fantasmaGaspar->pos_y=gy;
+    fantasmaGaspar->n_moves = n_moves;
+    fantasmaGaspar->passo = passo;
+    fantasmaGaspar->pos_x = gx;
+    fantasmaGaspar->pos_y = gy;
     fantasmaGaspar->waiting = passo;
     fantasmaGaspar->current_move = 0;
-    fantasmaGaspar->charged=0;
+    fantasmaGaspar->charged = 0;
  
     board->board[gy * board->width + gx].content = 'M';
     
     return 0;
 }
-// Non-Static Loading
+
+
 int load_pacman_nonstatic(board_t* board,int points) {
 
-    pacman_t* pikachu=&board->pacmans[0];
+    pacman_t* pikachu = &board->pacmans[0];
     char filepath[MAX_FILENAME* 2];
-    pikachu->alive=1;
-    pikachu->points=points;
+    pikachu->alive = 1;
+    pikachu->points = points;
 
-    if(board->pacman_file[0]=='\0'){
+    if (board->pacman_file[0] == '\0') {
     for (int i = 0; i < board->width * board->height; i++) {
         int y = i / board->width;   // row
         int x = i % board->width;   // col
         int hasMonster=0;
-        for(int monstro=0; monstro<board->n_ghosts; monstro++){
-            if (board->ghosts[monstro].pos_x==y &&  board->ghosts[monstro].pos_y==x) {
-                hasMonster=1;
+        for(int monstro = 0; monstro<board->n_ghosts; monstro++){
+            if (board->ghosts[monstro].pos_x == y &&  board->ghosts[monstro].pos_y == x) {
+                hasMonster = 1;
                 break;
             }
 
         }
-        // pick first free cell with a dot and no portal/wall/monster
         if (board->board[i].content == ' ' &&
             board->board[i].has_dot == 1 &&
             board->board[i].has_portal != 1 &&
@@ -446,25 +445,25 @@ int load_pacman_nonstatic(board_t* board,int points) {
         pikachu->passo = 0;
         pikachu->waiting = 0;
         pikachu->n_moves = 0;
-        pikachu->current_move=0;
+        pikachu->current_move = 0;
     }else{
-        if(build_directory(board->base_dir, board->pacman_file, filepath, sizeof(filepath))==-1){
+        if (build_directory(board->base_dir, board->pacman_file, filepath, sizeof(filepath)) == -1) {
             return -1;
         }
         int passo=0,gx=0,gy=0,n_moves=0;
-        if(parse_entity_file(pikachu->moves,&n_moves, &passo, &gx, &gy, filepath)==-1){
+        if (parse_entity_file(pikachu->moves,&n_moves, &passo, &gx, &gy, filepath) == -1) {
             return -1;
         }
         if (gx < 0 || gx >= board->width || gy < 0 || gy >= board->height) {
             return -1;
         }
-        if (board->board[gy * board->width + gx].content == 'W'){
+        if (board->board[gy*board->width + gx].content == 'W') {
             return -1;
         }
-        pikachu->n_moves=n_moves;
-        pikachu->passo=passo;
-        pikachu->pos_x=gx;
-        pikachu->pos_y=gy;
+        pikachu->n_moves = n_moves;
+        pikachu->passo = passo;
+        pikachu->pos_x = gx;
+        pikachu->pos_y = gy;
         pikachu->waiting = passo;
         pikachu->current_move = 0;
     }
@@ -511,7 +510,7 @@ int load_level(board_t *board, int points) {
 
 
 int load_level_from_file(board_t *board, const char *filepath, int accumulated_points) {
-    if(parse_level_file(board, filepath)!=0){
+    if (parse_level_file(board, filepath) != 0) {
         return -1;
     }
 
@@ -520,23 +519,24 @@ int load_level_from_file(board_t *board, const char *filepath, int accumulated_p
     board->level_finished = 0;
     sprintf(board->level_name, "Level %d",board->current_level+1);
 
-    //fantasma
+    //ghost
     for(int i=0;i<board->n_ghosts;i++){
-        if(load_ghost_nonstatic(board,i, board->ghosts_files[i])){
+        if (load_ghost_nonstatic(board,i, board->ghosts_files[i])) {
             return -1;
         }
     }
     //pacman
-    if(load_pacman_nonstatic(board,accumulated_points)==-1){
+    if (load_pacman_nonstatic(board,accumulated_points) == -1) {
         return -1;
     }
     return 0;
-//    
+
 }
+
 int next_level(board_t* board){
-    if (board != NULL){
+    if (board != NULL) {
         board->current_level++;
-        if(board->current_level < board->level_count){
+        if (board->current_level < board->level_count) {
             return 1;
         }
     }
