@@ -183,6 +183,7 @@ int main(int argc, char** argv) {
             if(load_level_from_file(&game_board, lvlpath, accumulated_points) < 0){
                 break;
             }
+            game_board.input = '\0';
             game_board.game_running = 1;
         } else {
             game_board.game_running = 1;
