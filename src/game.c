@@ -195,7 +195,7 @@ int main(int argc, char** argv) {
             resuming = 0;
         }
 
-pthread_t t_pacman, t_render;
+        pthread_t t_pacman, t_render;
         pthread_t t_ghosts[MAX_GHOSTS];
 
         pthread_create(&t_pacman, NULL, pacman_thread, &game_board);
