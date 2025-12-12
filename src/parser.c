@@ -25,10 +25,12 @@ int build_directory(const char* baseDir,const char* entity_name, char* entitypat
         if (dp == NULL) {
             break;
         }
+
         if (errno != 0){
             closedir(dirp);
             return -1;
         }
+
         if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) continue;
         
         if (strcmp(dp->d_name, entity_name) == 0) {
@@ -48,10 +50,11 @@ Used to identify file extensions (.lvl, .p, .m).
 */
 static int ends_with(const char *s, const char *suffix) {
     if (s == NULL || suffix == NULL) return 0;
+
     size_t s_len = strlen(s);
     size_t suf_len = strlen(suffix);
 
-    if (suf_len == 0) return 1;          // sufixo vazio dá sempre certo
+    if (suf_len == 0) return 1;          
     if (suf_len > s_len) return 0;
     const char *start = s + (s_len - suf_len);
     return strncmp(start, suffix, suf_len) == 0; 
@@ -69,6 +72,7 @@ int scan_directory_levels(const char* dir, board_t* board){
     }
 
     struct dirent *dp;
+
     strncpy(board->base_dir, dir, MAX_FILENAME - 1);
     board->base_dir[MAX_FILENAME - 1] = '\0';
     board->level_count = 0;
@@ -80,8 +84,10 @@ int scan_directory_levels(const char* dir, board_t* board){
         if (dp == NULL) {
             break;
         }
+
         if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0) continue;
-        if (ends_with(dp->d_name,".lvl") == 1){
+
+        if (ends_with(dp->d_name,".lvl") == 1) {
             strncpy(board->level_files[board->level_count],dp->d_name,MAX_FILENAME-1);
             board->level_files[board->level_count][MAX_FILENAME-1]='\0';        
             board->level_count++;
@@ -203,15 +209,16 @@ int parse_level_file(board_t* board, const char *lvl_path){
             }
         }
         else {
-            game_line=line;
+            game_line = line;
             break;
         }
-        if (line[0]!='X' && line[0]!='o' && line[0]!='@' && entered==0) {
+        if (line[0] != 'X' && line[0] != 'o' && line[0] != '@' && entered == 0) {
             line = strtok_r(NULL, "\n", &save);
         }
 
     }
-    //Criar o espaço para a grelha e o numero de bixos e pacman
+
+    //Allocate board memory 
     if (board->height>0 && board->width>0) {
         board->board = calloc(board->width * board->height, sizeof(board_pos_t));
         board->pacmans = calloc(board->n_pacmans, sizeof(pacman_t));
@@ -224,28 +231,28 @@ int parse_level_file(board_t* board, const char *lvl_path){
             free(board->ghosts);
             return -1;
         }
-                // inicializar toda a grelha
     }
     else {
         free(buf);
     }
 
-    for (int y = 0; y<board->height; y++) {
+    //Grid content
+    for (int y = 0; y < board->height; y++) {
         if (game_line == NULL) {
             break;
         }
         
-        for (int i = 0; i<board->width; i++) {
+        for (int i = 0; i < board->width; i++) {
             if (game_line[i] == 'X') {
-                board->board[y*board->width+i].content= 'W';
+                board->board[y*board->width+i].content = 'W';
             }
             else if (game_line[i] == 'o') {
-                board->board[y*board->width+i].content= ' ';
-                board->board[y*board->width+i].has_dot=1;
+                board->board[y*board->width+i].content = ' ';
+                board->board[y*board->width+i].has_dot = 1;
             }
             else if (game_line[i] == '@') {
-                board->board[y*board->width+i].content= ' ';
-                board->board[y*board->width+i].has_portal=1;            
+                board->board[y*board->width+i].content = ' ';
+                board->board[y*board->width+i].has_portal = 1;            
             }
         }
         game_line = strtok_r(NULL, "\n", &save);
@@ -276,8 +283,8 @@ int parse_entity_file(command_t* moves, int* n_moves, int* passo, int* pos_x, in
         return -1; 
     }
 
-    for(;;){
-        if (cap-used < 4096){
+    for(;;) {
+        if (cap-used < 4096) {
             size_t new_cap = cap *2;
             char *temp = (char*)realloc(buf, new_cap);
             if (temp ==NULL) {
@@ -313,6 +320,7 @@ int parse_entity_file(command_t* moves, int* n_moves, int* passo, int* pos_x, in
     }
     buf[used]= '\0';
 
+    //Entity data
     *n_moves = 0;
     *passo = 0;
     *pos_x = 0;
@@ -321,6 +329,7 @@ int parse_entity_file(command_t* moves, int* n_moves, int* passo, int* pos_x, in
     char *save = NULL;
     char *line = strtok_r(buf, "\n", &save);
     char c;
+    
     while (line) {
         int entered = 0;
         if (line[0] == '#') {
@@ -330,7 +339,7 @@ int parse_entity_file(command_t* moves, int* n_moves, int* passo, int* pos_x, in
         else if (line[0] == 'P' && line[1] == 'A') { //PASSO
             sscanf(line,"PASSO %d", passo);
         }
-        else if (line[0] == 'P' && line[1] == 'O') {
+        else if (line[0] == 'P' && line[1] == 'O') { //POS
             sscanf(line,"POS %d %d", pos_y, pos_x);
         }
         else if (sscanf(line,"%c", &c) == 1) {
