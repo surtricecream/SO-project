@@ -4,6 +4,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <string.h>
 
 FILE * debugfile;
 
@@ -375,18 +376,14 @@ int load_ghost(board_t* board) {
     return 0;
 }
 
-
-
-
 // Non-Static Loading
-
 int load_ghost_nonstatic(board_t* board, int ghostIndex, const char* monster_name) {
     if (ghostIndex < 0 || ghostIndex >= board->n_ghosts) return -1;
     ghost_t* fantasmaGaspar = &board->ghosts[ghostIndex];
     
     char filepath[MAX_FILENAME* 2];
 
-    if (build_directory(board->base_dir, monster_name, filepath, sizeof(filepath)) ==-1) {
+    if (build_directory(board->base_dir, monster_name, filepath, sizeof(filepath)) == -1) {
         return -1;
     }
   
@@ -413,9 +410,7 @@ int load_ghost_nonstatic(board_t* board, int ghostIndex, const char* monster_nam
     return 0;
 }
 
-
 int load_pacman_nonstatic(board_t* board,int points) {
-
     pacman_t* pikachu = &board->pacmans[0];
     char filepath[MAX_FILENAME* 2];
     pikachu->alive = 1;
@@ -441,16 +436,18 @@ int load_pacman_nonstatic(board_t* board,int points) {
             pikachu->pos_x = x;
             break;
         }
-}
-        pikachu->passo = 0;
-        pikachu->waiting = 0;
-        pikachu->n_moves = 0;
-        pikachu->current_move = 0;
-    }else{
+    }
+
+    pikachu->passo = 0;
+    pikachu->waiting = 0;
+    pikachu->n_moves = 0;
+    pikachu->current_move = 0;
+
+    } else {
         if (build_directory(board->base_dir, board->pacman_file, filepath, sizeof(filepath)) == -1) {
             return -1;
         }
-        int passo=0,gx=0,gy=0,n_moves=0;
+        int passo = 0, gx = 0, gy = 0, n_moves = 0;
         if (parse_entity_file(pikachu->moves,&n_moves, &passo, &gx, &gy, filepath) == -1) {
             return -1;
         }
@@ -508,7 +505,6 @@ int load_level(board_t *board, int points) {
     return 0;
 }
 
-
 int load_level_from_file(board_t *board, const char *filepath, int accumulated_points) {
     if (parse_level_file(board, filepath) != 0) {
         return -1;
@@ -517,10 +513,22 @@ int load_level_from_file(board_t *board, const char *filepath, int accumulated_p
     pthread_rwlock_init(&board->board_lock, NULL);
     board->game_running = 1;
     board->level_finished = 0;
-    sprintf(board->level_name, "Level %d",board->current_level+1);
+
+    //Level display
+    const char *filename = strrchr(filepath, '/');
+    if (filename) {
+        filename++;
+    } else {
+        filename = filepath;
+    }
+    snprintf(board->level_name, sizeof(board->level_name), "%s", filename);
+    char *dot = strrchr(board->level_name, '.');
+    if (dot) {
+        *dot = '\0';
+    }
 
     //ghost
-    for(int i=0;i<board->n_ghosts;i++){
+    for(int i = 0; i < board->n_ghosts; i++){
         if (load_ghost_nonstatic(board,i, board->ghosts_files[i])) {
             return -1;
         }
@@ -530,7 +538,6 @@ int load_level_from_file(board_t *board, const char *filepath, int accumulated_p
         return -1;
     }
     return 0;
-
 }
 
 int next_level(board_t* board){
