@@ -130,6 +130,4 @@ int parse_level_file(board_t* board, const char* lvl_path);
 /*Parses an entity file (Pacman or Ghost) to extract moves, initial position and speed (passo)*/
 int parse_entity_file(command_t* moves, int* n_moves, int* passo, int* pos_x, int* pos_y, const char* filepath);
 
-
-
 #endif

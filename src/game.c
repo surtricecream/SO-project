@@ -47,7 +47,14 @@ void* pacman_thread(void* arg) {
     board_t* board = (board_t*)arg;
     pacman_t* pacman = &board->pacmans[0];
 
-    while (board->game_running) {
+    while (1) {
+        pthread_rwlock_rdlock(&board->board_lock);
+        if (!board->game_running) {
+            pthread_rwlock_unlock(&board->board_lock);
+            break;
+        }
+        pthread_rwlock_unlock(&board->board_lock);
+
         command_t cmd;
 
         //User controls pac
@@ -120,7 +127,7 @@ void* ghost_thread(void* arg) {
     int index = args->ghost_index;
     free(args); 
 
-    while (board->game_running) {
+    while (1) {
         sleep_ms(board->tempo);
 
         pthread_rwlock_wrlock(&board->board_lock);
@@ -150,7 +157,7 @@ Captures raw input and draws the board to the terminal.
 void* render_thread(void* arg) {
     board_t* board = (board_t*)arg;
 
-    while (board->game_running) {
+    while (1) {
 
         char key = get_input();
         if (key) {
@@ -162,6 +169,11 @@ void* render_thread(void* arg) {
         }
 
         pthread_rwlock_rdlock(&board->board_lock);
+        if (!board->game_running) {
+            pthread_rwlock_unlock(&board->board_lock);
+            break;
+        }
+        
         draw_board(board, DRAW_MENU);
         refresh_screen();
         pthread_rwlock_unlock(&board->board_lock);
@@ -236,7 +248,9 @@ int main(int argc, char** argv) {
 
         pthread_join(t_pacman, NULL);
 
+        pthread_rwlock_wrlock(&game_board.board_lock);
         game_board.game_running = 0;
+        pthread_rwlock_unlock(&game_board.board_lock);
 
         pthread_join(t_render, NULL);
         for (int i = 0; i < game_board.n_ghosts; i++) {
